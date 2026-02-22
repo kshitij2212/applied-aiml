@@ -4,7 +4,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc, roc_auc_score
 
 class NoShowPredictor:
     def __init__(self):
@@ -15,20 +16,66 @@ class NoShowPredictor:
     def preprocess(self,df):
         df = df.copy()
 
-        df['ScheduledDay'] = pd.to_datetime(df['ScheduleDay'],utc=True)
+        df['ScheduledDay'] = pd.to_datetime(df['ScheduledDay'],utc=True)
         df['AppointmentDay'] = pd.to_datetime(df['AppointmentDay'],utc=True)
-        df['LeadTime'] = (df['AppointmentDay'] - df['ScheduleDay']).dt.days.clip(lower=0)
+        df['LeadTime'] = (df['AppointmentDay'] - df['ScheduledDay']).dt.days.clip(lower=0)
 
-        df['DayOfWeek'] = df['AppointmentDay'].dt.dayOfWeek
+        df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek
         df['AppointmentHour'] = df['AppointmentDay'].dt.hour
         df['IsWeekend'] = df['DayOfWeek'].isin([5,6]).astype(int)       
 
         df['Gender_Male'] = (df['Gender'] == 'M').astype(int)
         df['NoShowBinary'] = (df['No-show'] == 'Yes').astype(int)
         
-        df['Age'] = df['Age'].clip(lower=0)
-        df['Age'] = df['Age'].clip(upper=115)
+        df['Age'] = df['Age'].clip(0, 115)
 
         df['AgeGroup'] = pd.cut(df['Age'],bins=[0, 12, 18, 35, 55, 75, 120],labels=[0, 1, 2, 3, 4, 5]).astype(float).fillna(2)
 
         return df
+    
+
+    def train(self, df, model_name, test_size = 0.2 ,threshold = 0.35):
+        self.model_name = model_name
+        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek', 'AppointmentHour', 'IsWeekend']
+        
+
+        X = df[self.feature_cols]
+        y = df['NoShowBinary']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42, stratify=y)
+        
+
+        if model_name == 'Logistic Regression':
+            X_train = self.scaler.fit_transform(X_train)
+            X_test = self.scaler.transform(X_test)
+            self.model = LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced')
+
+        elif model_name == 'Decision Tree':
+            self.model = DecisionTreeClassifier(random_state=42, class_weight='balanced')
+
+        elif model_name == 'Random Forest':
+            self.model = RandomForestClassifier(random_state=42, class_weight='balanced')
+
+        else:
+            raise ValueError("Invalid model_name")
+
+        self.model.fit(X_train, y_train)
+
+        y_proba = self.model.predict_proba(X_test)[:,1]
+        y_pred = (y_proba > threshold).astype(int)
+
+        if hasattr(self.model, "feature_importances_"):
+            importance = dict(zip(self.feature_cols, self.model.feature_importances_))
+        elif hasattr(self.model, "coef_"):
+            importance = dict(zip(self.feature_cols, self.model.coef_[0]))
+        else:
+            importance = None
+
+        return {
+            'accuracy': accuracy_score(y_test, y_pred),
+            'precision': precision_score(y_test, y_pred, zero_division=0),
+            'recall': recall_score(y_test, y_pred, zero_division=0),
+            'f1': f1_score(y_test, y_pred, zero_division=0),
+            'confusion_matrix': confusion_matrix(y_test, y_pred),
+            'roc_auc': roc_auc_score(y_test, y_proba),
+            'feature_importance': importance}
+
