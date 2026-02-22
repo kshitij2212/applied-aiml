@@ -5,14 +5,16 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 
 class NoShowPredictor:
     def __init__(self):
         self.model = None
         self.scaler = StandardScaler()
         self.feature_cols = None
-    
+        self.threshold = 0.35
+        self.model_name = None
+
     def preprocess(self,df):
         df = df.copy()
 
@@ -21,25 +23,33 @@ class NoShowPredictor:
         df['LeadTime'] = (df['AppointmentDay'] - df['ScheduledDay']).dt.days.clip(lower=0)
 
         df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek
-        df['AppointmentHour'] = df['AppointmentDay'].dt.hour
         df['IsWeekend'] = df['DayOfWeek'].isin([5,6]).astype(int)       
 
         df['Gender_Male'] = (df['Gender'] == 'M').astype(int)
-        df['NoShowBinary'] = (df['No-show'] == 'Yes').astype(int)
+        if 'No-show' in df.columns:
+            df['NoShowBinary'] = (df['No-show'] == 'Yes').astype(int)
         
         df['Age'] = df['Age'].clip(0, 115)
 
-        df['AgeGroup'] = pd.cut(df['Age'],bins=[0, 12, 18, 35, 55, 75, 120],labels=[0, 1, 2, 3, 4, 5]).astype(float).fillna(2)
+        df['AgeGroup'] = pd.cut(df['Age'],bins=[-1, 12, 18, 35, 55, 75, 120],labels=False).astype(float).fillna(2)
 
         return df
     
 
     def train(self, df, model_name, test_size = 0.2 ,threshold = 0.35):
+        df = self.preprocess(df)
         self.model_name = model_name
-        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek', 'AppointmentHour', 'IsWeekend']
-        
+        self.threshold = threshold
+        self.scaler = StandardScaler()
+        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek', 'IsWeekend']
 
+        for col in self.feature_cols:
+            if col not in df.columns:
+                df[col] = 0
+        
         X = df[self.feature_cols]
+        if 'NoShowBinary' not in df.columns:
+            raise ValueError("Target column missing.")
         y = df['NoShowBinary']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42, stratify=y)
         
@@ -61,7 +71,7 @@ class NoShowPredictor:
         self.model.fit(X_train, y_train)
 
         y_proba = self.model.predict_proba(X_test)[:,1]
-        y_pred = (y_proba > threshold).astype(int)
+        y_pred = (y_proba >= threshold).astype(int)
 
         if hasattr(self.model, "feature_importances_"):
             importance = dict(zip(self.feature_cols, self.model.feature_importances_))
@@ -79,3 +89,26 @@ class NoShowPredictor:
             'roc_auc': roc_auc_score(y_test, y_proba),
             'feature_importance': importance}
 
+
+    def predict(self, patient_data):
+        if self.model is None or self.feature_cols is None:
+            raise ValueError("Model is not trained yet.")
+
+        df = pd.DataFrame([patient_data])
+        df = self.preprocess(df)
+
+        for col in self.feature_cols:
+            if col not in df.columns:
+                df[col] = 0
+
+        X = df[self.feature_cols]
+
+        if self.model_name == 'Logistic Regression':
+            X = self.scaler.transform(X)
+
+        prob = self.model.predict_proba(X)[0][1]
+        return {
+            'probability': float(prob),
+            'prediction': int(prob >= self.threshold),
+            'threshold_used': self.threshold
+        }
