@@ -22,8 +22,7 @@ class NoShowPredictor:
         df['AppointmentDay'] = pd.to_datetime(df['AppointmentDay'],utc=True)
         df['LeadTime'] = (df['AppointmentDay'] - df['ScheduledDay']).dt.days.clip(lower=0)
 
-        df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek
-        df['IsWeekend'] = df['DayOfWeek'].isin([5,6]).astype(int)       
+        df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek      
 
         df['Gender_Male'] = (df['Gender'] == 'M').astype(int)
         if 'No-show' in df.columns:
@@ -41,7 +40,7 @@ class NoShowPredictor:
         self.model_name = model_name
         self.threshold = threshold
         self.scaler = StandardScaler()
-        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek', 'IsWeekend']
+        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek']
 
         for col in self.feature_cols:
             if col not in df.columns:
