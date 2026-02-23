@@ -93,7 +93,7 @@ elif page == "Predict":
                 'Diabetes': diabetes,
                 'Alcoholism': alcoholism,
                 'Handcap': handcap,
-                'SMS_received': sms,
+                'SMS_Received': sms,
                 'LeadTime': lead_time,
                 'DayOfWeek': day_of_week,
                 'ScheduledDay': '2024-01-01T00:00:00Z',
