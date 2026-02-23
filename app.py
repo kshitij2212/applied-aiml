@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from ml_pipeline import NoShowPredictor
 
 st.set_page_config(page_title="No-Show Predictor", layout="wide")
@@ -13,7 +14,7 @@ if 'df' not in st.session_state:
 if 'trained' not in st.session_state:
     st.session_state.trained = False
 
-st.title("🏥 No-Show Predictor")
+st.title(":hospital: No-Show Predictor")
 
 page = st.sidebar.radio(
     "Navigation",
@@ -28,7 +29,11 @@ if page == "Upload Data":
             st.session_state.df = pd.read_csv(uploaded_file, encoding='utf-8')
         except UnicodeDecodeError:
             uploaded_file.seek(0)
-            st.session_state.df = pd.read_csv(uploaded_file, encoding='latin-1', on_bad_lines='skip')
+            st.session_state.df = pd.read_csv(
+                uploaded_file,
+                encoding='latin-1',
+                on_bad_lines='skip'
+            )
         st.success("File uploaded successfully!")
         st.dataframe(st.session_state.df.head())
 
@@ -59,11 +64,33 @@ elif page == "Train Model":
 
         if st.session_state.trained:
             results = st.session_state.results
+
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Accuracy", f"{results['accuracy']:.2%}")
             col2.metric("Precision", f"{results['precision']:.2%}")
             col3.metric("Recall", f"{results['recall']:.2%}")
             col4.metric("F1 Score", f"{results['f1']:.2%}")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Feature Importance")
+                fi = pd.Series(results['feature_importance']).sort_values(ascending=False)
+                st.bar_chart(fi)
+
+            with col2:
+                st.subheader("Confusion Matrix")
+                cm = results['confusion_matrix']
+                labels = ['True Negative', 'False Positive', 'False Negative', 'True Positive']
+                values = [cm[0][0], cm[0][1], cm[1][0], cm[1][1]]
+                fig = px.pie(
+                    names=labels,
+                    values=values,
+                    hole=0.4,
+                    color_discrete_sequence=['#10B981', '#F59E0B', '#EF4444', '#3B82F6']
+                )
+                fig.update_layout(height=300)
+                st.plotly_chart(fig, width='stretch')
 
 elif page == "Predict":
     st.header("Patient Risk Prediction")
@@ -77,7 +104,7 @@ elif page == "Predict":
             age = st.number_input("Age", 0, 115, 30)
             gender = st.selectbox("Gender", ["M", "F"])
             scholarship = st.selectbox("Scholarship", [0, 1])
-            hypertension = st.selectbox("Hypertension", [0, 1])
+            hipertension = st.selectbox("Hipertension", [0, 1])
             diabetes = st.selectbox("Diabetes", [0, 1])
             alcoholism = st.selectbox("Alcoholism", [0, 1])
 
@@ -92,13 +119,14 @@ elif page == "Predict":
                 'Age': age,
                 'Gender': gender,
                 'Scholarship': scholarship,
-                'Hypertension': hypertension,
+                'Hipertension': hipertension,
                 'Diabetes': diabetes,
                 'Alcoholism': alcoholism,
                 'Handcap': handcap,
                 'SMS_received': sms,
                 'LeadTime': lead_time,
                 'DayOfWeek': day_of_week,
+                'IsWeekend': 1 if day_of_week >= 5 else 0,
                 'ScheduledDay': '2024-01-01T00:00:00Z',
                 'AppointmentDay': '2024-01-01T00:00:00Z',
             }
@@ -112,7 +140,7 @@ elif page == "Predict":
             st.caption(f"Threshold used: {threshold_used}")
 
             if prediction == 1:
-                if prob >= threshold_used:
+                if prob >= 0.5:
                     st.error("High Risk — Call Patient!")
                 else:
                     st.warning("Medium Risk — Send SMS!")
