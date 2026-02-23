@@ -29,12 +29,29 @@ In our dataset, approximately **20% of appointments result in no-shows**. This s
 
 - **Source:** [Medical Appointment No Shows — Kaggle](https://www.kaggle.com/datasets/joniarroba/noshowappointments)
 - **Size:** 110,527 appointments
-- **Location:** Brazil
+- **Location:** Vitória, Espírito Santo, Brazil
 - **No-Show Rate:** ~20.2%
+
+### Key Columns
+
+| Column | Description |
+|---|---|
+| `Gender` | M / F |
+| `ScheduledDay` | When the appointment was booked |
+| `AppointmentDay` | Actual appointment date |
+| `Age` | Patient age (0–115) |
+| `Scholarship` | Enrolled in Bolsa Família welfare (0/1) |
+| `Hipertension` | Has hypertension (0/1) |
+| `Diabetes` | Has diabetes (0/1) |
+| `Alcoholism` | Has alcoholism (0/1) |
+| `Handcap` | Handicap level (0–4) |
+| `SMS_received` | Received SMS reminder (0/1) |
+| `No-show` | **Target** — Yes = missed, No = attended |
 
 ---
 
 ## ⚙️ System Architecture
+
 ```mermaid
 flowchart TD
     A[Upload CSV Dataset] --> B[Data Preprocessing]
@@ -47,22 +64,22 @@ flowchart TD
     F --> I[Feature Importance]
     G & H & I --> J[Streamlit Web UI]
     J --> K[Single Patient Risk Prediction]
-    J --> L[Batch Prediction]
 ```
+
 ---
 
 ## 🛠️ Features
 
-- 📊 **EDA Dashboard** — Interactive Plotly charts for data exploration
-- 🤖 **4 ML Models** — Logistic Regression, Decision Tree, Random Forest, Gradient Boosting
-- ⚖️ **Class Imbalance Handling** — SMOTE oversampling
-- 🔮 **Single Patient Risk Scoring** — Gauge chart with intervention recommendation
-- 📋 **Batch Prediction** — Upload CSV, score all patients, download results
+- 🤖 **3 ML Models** — Logistic Regression, Decision Tree, Random Forest
+- ⚖️ **Class Imbalance Handling** — `class_weight='balanced'` on all models
+- 🔮 **Single Patient Risk Scoring** — Probability score with intervention recommendation
+- 🎚️ **Adjustable Threshold** — Tune precision/recall tradeoff via UI slider
+- 📊 **Feature Importance Chart** — See which factors drive no-show risk
 
 ---
 
-
 ## 🚀 How to Run Locally
+
 ```bash
 # Step 1: Install dependencies
 pip3 install -r requirements.txt
@@ -77,10 +94,11 @@ streamlit run app.py
 ---
 
 ## 📁 Project Structure
+
 ```
 applied-aiml/
 ├── app.py                  ← Streamlit UI
-├── ml_pipeline.py          ← ML code
+├── ml_pipeline.py          ← ML training & prediction pipeline
 ├── requirements.txt        ← Dependencies
 ├── README.md               ← This file
 └── MILESTONE1_REPORT.md    ← Project report
@@ -88,13 +106,25 @@ applied-aiml/
 
 ---
 
+## 🧠 Feature Engineering
+
+| Feature | Description |
+|---|---|
+| `LeadTime` | Days between booking and appointment |
+| `AgeGroup` | Age bucketed into 6 groups (child → elderly) |
+| `DayOfWeek` | Day of appointment (0=Mon, 6=Sun) |
+| `Gender_Male` | Binary encoding of gender |
+
+---
+
 ## 🧰 Tech Stack
 
-- **Language:** Python 3.12
-- **ML:** scikit-learn, imbalanced-learn
-- **UI:** Streamlit
-- **Charts:** Plotly
-- **Data:** pandas, numpy
-- **Hosting:** Hugging Face Spaces
+| Layer | Tool |
+|---|---|
+| Language | Python 3.12 |
+| ML | scikit-learn |
+| UI | Streamlit |
+| Data | pandas, numpy |
+| Hosting | Hugging Face Spaces |
 
 ---
