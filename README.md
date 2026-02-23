@@ -1,3 +1,14 @@
+---
+title: Clinical No-Show Predictor
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: streamlit
+sdk_version: 1.54.0
+app_file: app.py
+pinned: false
+---
+
 # 🏥 Clinical No-Show Prediction System
 
 > AI-powered appointment management system that predicts patient no-shows using machine learning.
