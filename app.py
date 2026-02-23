@@ -10,7 +10,6 @@ if 'predictor' not in st.session_state:
 if 'df' not in st.session_state:
     st.session_state.df = None
 
-# ❌ WRONG KEY NAME
 if 'is_trained' not in st.session_state:
     st.session_state.trained = False
 
@@ -63,3 +62,40 @@ elif page == "Predict":
 
     if not st.session_state.trained:
         st.warning("Train the model first!")
+    elif page == "Predict":
+    st.header("Patient Risk Prediction")
+
+    if not st.session_state.trained:
+        st.warning("Train the model first!")
+    else:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            age = st.number_input("Age", 0, 115, 30)
+            gender = st.selectbox("Gender", ["M", "F"])
+            scholarship = st.selectbox("Scholarship", [0, 1])
+            hipertension = st.selectbox("Hipertension", [0, 1]) 
+            diabetes = st.selectbox("Diabetes", [0, 1])
+            alcoholism = st.selectbox("Alcoholism", [0, 1])
+
+        with col2:
+            handcap = st.selectbox("Handcap", [0, 1, 2, 3, 4])
+            sms = st.selectbox("SMS Received", [0, 1])
+            lead_time = st.number_input("Lead Time (days)", 0, 365, 7)
+            day_of_week = st.selectbox("Day of Week", [0, 1, 2, 3, 4, 5, 6])
+
+        if st.button("Predict"):
+            patient_data = {
+                'Age': age,
+                'Gender': gender,
+                'Scholarship': scholarship,
+                'Hypertension': hipertension,
+                'Diabetes': diabetes,
+                'Alcoholism': alcoholism,
+                'Handcap': handcap,
+                'SMS_received': sms,
+                'LeadTime': lead_time,
+                'DayOfWeek': day_of_week,
+                'ScheduledDay': '2024-01-01T00:00:00Z',
+                'AppointmentDay': '2024-01-01T00:00:00Z',
+            }
