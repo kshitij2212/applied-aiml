@@ -10,7 +10,7 @@ if 'predictor' not in st.session_state:
 if 'df' not in st.session_state:
     st.session_state.df = None
 
-if 'is_trained' not in st.session_state:
+if 'trained' not in st.session_state:
     st.session_state.trained = False
 
 st.title("🏥 No-Show Predictor")
@@ -57,12 +57,15 @@ elif page == "Train Model":
                 st.session_state.trained = True
                 st.session_state.results = results
 
-elif page == "Predict":
-    st.header("Patient Risk Prediction")
+        if st.session_state.trained:
+            results = st.session_state.results
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Accuracy", f"{results['accuracy']:.2%}")
+            col2.metric("Precision", f"{results['precision']:.2%}")
+            col3.metric("Recall", f"{results['recall']:.2%}")
+            col4.metric("F1 Score", f"{results['f1']:.2%}")
 
-    if not st.session_state.trained:
-        st.warning("Train the model first!")
-    elif page == "Predict":
+elif page == "Predict":
     st.header("Patient Risk Prediction")
 
     if not st.session_state.trained:
@@ -74,7 +77,7 @@ elif page == "Predict":
             age = st.number_input("Age", 0, 115, 30)
             gender = st.selectbox("Gender", ["M", "F"])
             scholarship = st.selectbox("Scholarship", [0, 1])
-            hipertension = st.selectbox("Hipertension", [0, 1]) 
+            hypertension = st.selectbox("Hypertension", [0, 1])
             diabetes = st.selectbox("Diabetes", [0, 1])
             alcoholism = st.selectbox("Alcoholism", [0, 1])
 
@@ -89,13 +92,29 @@ elif page == "Predict":
                 'Age': age,
                 'Gender': gender,
                 'Scholarship': scholarship,
-                'Hypertension': hipertension,
+                'Hypertension': hypertension,
                 'Diabetes': diabetes,
                 'Alcoholism': alcoholism,
                 'Handcap': handcap,
-                'SMS_Received': sms,
+                'SMS_received': sms,
                 'LeadTime': lead_time,
                 'DayOfWeek': day_of_week,
                 'ScheduledDay': '2024-01-01T00:00:00Z',
                 'AppointmentDay': '2024-01-01T00:00:00Z',
             }
+
+            result = st.session_state.predictor.predict(patient_data)
+            prob = result['probability']
+            prediction = result['prediction']
+            threshold_used = result['threshold_used']
+
+            st.subheader(f"No-Show Probability: {prob:.2%}")
+            st.caption(f"Threshold used: {threshold_used}")
+
+            if prediction == 1:
+                if prob >= threshold_used:
+                    st.error("High Risk — Call Patient!")
+                else:
+                    st.warning("Medium Risk — Send SMS!")
+            else:
+                st.success("Low Risk — Patient will come!")
