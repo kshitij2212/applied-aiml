@@ -1,28 +1,14 @@
----
-title: Clinical No-Show Predictor
-emoji: 🏥
-colorFrom: blue
-colorTo: green
-sdk: streamlit
-sdk_version: 1.54.0
-app_file: app.py
-pinned: false
----
+# 🏥 ClinIQ — Care Intelligence System
 
-# 🏥 Clinical No-Show Prediction System
-
-> AI-powered appointment management system that predicts patient no-shows using machine learning.
+> An end-to-end Agentic AI system for healthcare operations that predicts patient no-shows and generates actionable care coordination strategies.
 
 ---
 
-## 📌 Problem Statement
+## 📌 Overview
 
-Appointment no-shows are a critical problem in healthcare. When patients miss appointments without cancellation:
-- Clinics **lose revenue**
-- Clinical staff time is **wasted**
-- Other patients who needed that slot are **turned away**
-
-In our dataset, approximately **20% of appointments result in no-shows**. This system predicts which patients are likely to miss their appointment — so clinics can act proactively.
+ClinIQ is designed to help healthcare clinics reduce the "no-show" rate (missing appointments) through two main layers:
+1.  **Predictive layer**: ML models estimate the probability of a patient missing their appointment based on historical data.
+2.  **Agentic layer**: A LangGraph-powered AI agent reasons over the patient data and ML results to generate specific, actionable care interventions.
 
 ---
 
@@ -30,34 +16,9 @@ In our dataset, approximately **20% of appointments result in no-shows**. This s
 
 | Stakeholder | Benefit |
 |---|---|
-| Clinic Manager | Reduces wasted slots, increases revenue |
-| Care Coordinator | Prioritized call list for outreach |
-| Patient | Better access to care |
-
----
-
-## 📊 Dataset
-
-- **Source:** [Medical Appointment No Shows — Kaggle](https://www.kaggle.com/datasets/joniarroba/noshowappointments)
-- **Size:** 110,527 appointments
-- **Location:** Vitória, Espírito Santo, Brazil
-- **No-Show Rate:** ~20.2%
-
-### Key Columns
-
-| Column | Description |
-|---|---|
-| `Gender` | M / F |
-| `ScheduledDay` | When the appointment was booked |
-| `AppointmentDay` | Actual appointment date |
-| `Age` | Patient age (0–115) |
-| `Scholarship` | Enrolled in Bolsa Família welfare (0/1) |
-| `Hipertension` | Has hypertension (0/1) |
-| `Diabetes` | Has diabetes (0/1) |
-| `Alcoholism` | Has alcoholism (0/1) |
-| `Handcap` | Handicap level (0–4) |
-| `SMS_received` | Received SMS reminder (0/1) |
-| `No-show` | **Target** — Yes = missed, No = attended |
+| **Clinic Manager** | Reduces wasted slots, optimizes resource allocation, and recovers revenue. |
+| **Care Coordinator** | Receives an AI-prioritized outreach list with specific talking points for high-risk patients. |
+| **Medical Professional** | Accesses a comprehensive clinical report with ethical considerations and supporting sources. |
 
 ---
 
@@ -65,77 +26,99 @@ In our dataset, approximately **20% of appointments result in no-shows**. This s
 
 ```mermaid
 flowchart TD
-    A[Upload CSV Dataset] --> B[Data Preprocessing]
-    B --> C[Feature Engineering\nLead Time, Age Group, Day of Week]
-    C --> D[Train / Test Split 80-20]
-    D --> E[Train ML Model]
-    E --> F[Evaluate Model]
-    F --> G[Accuracy / Precision / Recall / F1]
-    F --> H[Confusion Matrix]
-    F --> I[Feature Importance]
-    G & H & I --> J[Streamlit Web UI]
-    J --> K[Single Patient Risk Prediction]
+    subgraph "1. Machine Learning Layer"
+    A[Upload CSV/Manual Input] --> B[Feature Engineering]
+    B --> C[Predictor Class]
+    C --> D[No-Show Probability %]
+    end
+
+    subgraph "2. Agentic Reasoning Layer (LangGraph)"
+    D --> E[Risk Analyzer]
+    E --> F[Guideline Retriever]
+    F --> G[Care Strategy Generator]
+    G --> H[Structured Clinical Report]
+    end
+
+    subgraph "3. Output & Export"
+    H --> I[Streamlit Dashboard]
+    I --> J[PDF Export Engine]
+    end
 ```
 
 ---
 
-## 🛠️ Features
+## 🛠️ Key Features
 
-- 🤖 **3 ML Models** — Logistic Regression, Decision Tree, Random Forest
-- ⚖️ **Class Imbalance Handling** — `class_weight='balanced'` on all models
-- 🔮 **Single Patient Risk Scoring** — Probability score with intervention recommendation
-- 🎚️ **Adjustable Threshold** — Tune precision/recall tradeoff via UI slider
-- 📊 **Feature Importance Chart** — See which factors drive no-show risk
+- 🤖 **Multi-Model Predictive Engine** — Logistic Regression, Decision Tree, and Random Forest options.
+- 🧠 **LangGraph Agentic Loop** — Uses stateful reasoning to identify risk factors and retrieve clinical guidelines (RAG).
+- 🧬 **Llama 3.3 (via Groq)** — High-speed inference for generating empathetic and clinical intervention strategies.
+- 📄 **On-Demand PDF Export** — Generate professional clinical reports for patient files or staff briefings.
+- 🎚️ **Adjustable Intervention Threshold** — Optimize your clinic's outreach sensitivity (Precision vs. Recall).
 
 ---
 
-## 🚀 How to Run Locally
+## 🚀 Getting Started
 
-```bash
-# Step 1: Install dependencies
-pip3 install -r requirements.txt
+### Prerequisites
 
-# Step 2: Run the app
-streamlit run app.py
+- Python 3.12+
+- A [Groq API Key](https://console.groq.com/) for Agentic features.
 
-# Step 3: Open browser
-# http://localhost:8501
-```
+### Installation & Setup
+
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/your-username/applied-aiml.git
+    cd applied-aiml
+    ```
+
+2.  **Install dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Configure environment**:
+    Create a `.env` file in the root directory:
+    ```env
+    GROQ_API_KEY=your_actual_api_key_here
+    ```
+
+4.  **Run the application**:
+    ```bash
+    streamlit run app.py
+    ```
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 applied-aiml/
-├── app.py                  ← Streamlit UI
-├── ml_pipeline.py          ← ML training & prediction pipeline
-├── requirements.txt        ← Dependencies
-├── README.md               ← This file
-└── MILESTONE1_REPORT.md    ← Project report
+├── app.py              # Main Streamlit application
+├── agent_logic.py      # LangGraph workflow & LLM integration
+├── ml_pipeline.py      # ML training & prediction logic
+├── pdf_generator.py    # PDF report generation (fpdf2)
+├── knowledge_base.json # Mock RAG guidelines for the agent
+├── style.css           # Premium UI styling
+├── requirements.txt    # Project dependencies
+└── .env                # API configuration (local only)
 ```
 
 ---
 
-## 🧠 Feature Engineering
+## 🧰 Technology Stack
 
-| Feature | Description |
+| Layer | Technology |
 |---|---|
-| `LeadTime` | Days between booking and appointment |
-| `AgeGroup` | Age bucketed into 6 groups (child → elderly) |
-| `DayOfWeek` | Day of appointment (0=Mon, 6=Sun) |
-| `Gender_Male` | Binary encoding of gender |
+| **Core Architecture** | [LangGraph](https://github.com/langchain-ai/langgraph) |
+| **Intelligence** | [Groq](https://groq.com/) (Llama 3.3 70B) |
+| **Frontend** | [Streamlit](https://streamlit.io/) |
+| **ML Framework** | [scikit-learn](https://scikit-learn.org/) |
+| **Data Engine** | Pandas, Numpy |
+| **Reporting** | [fpdf2](https://github.com/PyFPDF/fpdf2) |
 
 ---
 
-## 🧰 Tech Stack
+## ⚠️ Disclaimer
 
-| Layer | Tool |
-|---|---|
-| Language | Python 3.12 |
-| ML | scikit-learn |
-| UI | Streamlit |
-| Data | pandas, numpy |
-| Hosting | Hugging Face Spaces |
-
----
+*This application is a demonstration for educational purposes. All recommendations generated by the AI should be reviewed by a qualified medical professional before clinical implementation. Data used is based on the Kaggle V2 Medical No-Shows dataset.*
