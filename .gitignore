@@ -36,5 +36,7 @@ wheels/
 .streamlit/
 
 # Data files (optional - uncomment if you don't want to upload datasets)
-# *.csv
-# *.xlsx
+*.csv
+*.xlsx
+KaggleV2-May-2016.csv
+.env

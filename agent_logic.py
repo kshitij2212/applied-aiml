@@ -4,9 +4,25 @@ from typing import TypedDict, List, Annotated, Dict
 from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
+
+def extract_json(text):
+    """Robustly extract JSON from LLM response text."""
+    try:
+        # Try finding block within triple backticks
+        match = re.search(r'```(?:json)?\s*(\{.*\}|\[.*\])\s*```', text, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        # Fallback: find anything between first { and last } or [ and ]
+        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        return json.loads(text)
+    except:
+        return None
 
 class AgentState(TypedDict):
     patient_data: Dict
@@ -48,10 +64,8 @@ def analyze_risk_factors(state: AgentState):
     """
     
     response = llm.invoke([HumanMessage(content=prompt)])
-    content = response.content.replace("```json", "").replace("```", "").strip()
-    try:
-        factors = json.loads(content)
-    except:
+    factors = extract_json(response.content)
+    if not factors or not isinstance(factors, list):
         factors = ["High Lead Time", "Logistic Barriers", "Chronic Condition Management"]
         
     return {**state, "identified_factors": factors}
@@ -100,10 +114,8 @@ def generate_report(state: AgentState):
     """
     
     response = llm.invoke([HumanMessage(content=prompt)])
-    content = response.content.replace("```json", "").replace("```", "").strip()
-    try:
-        report = json.loads(content)
-    except:
+    report = extract_json(response.content)
+    if not report or not isinstance(report, dict):
         report = {
             "summary": "High risk of no-show detected.",
             "factors": factors,
