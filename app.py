@@ -1,13 +1,18 @@
-import streamlit as st
-st.write("App is starting...")
-
 import warnings
-
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="coroutine 'expire_cache' was never awaited")
 warnings.filterwarnings("ignore", message=".*Tried to instantiate class.*")
+
+import streamlit as st
+
+st.set_page_config(
+    page_title="ClinIQ — No-Show Predictor",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import logging
 logging.getLogger("streamlit.watcher.local_sources_watcher").setLevel(logging.ERROR)
 
-import streamlit as st
 import pandas as pd
 import plotly.express as px
 from ml_pipeline import NoShowPredictor
@@ -18,11 +23,7 @@ except Exception as e:
     print("Agent import failed:", e)
 from pdf_generator import generate_pdf
 
-st.set_page_config(
-    page_title="ClinIQ — No-Show Predictor",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.write("App is starting...")
 
 def local_css(file_name):
     with open(file_name) as f:
