@@ -1,4 +1,8 @@
+import streamlit as st
+st.write("App is starting...")
+
 import warnings
+
 warnings.filterwarnings("ignore", message=".*Tried to instantiate class.*")
 import logging
 logging.getLogger("streamlit.watcher.local_sources_watcher").setLevel(logging.ERROR)
@@ -7,7 +11,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from ml_pipeline import NoShowPredictor
-from agent_logic import run_agent
+try:
+    from agent_logic import run_agent
+except Exception as e:
+    run_agent = None
+    print("Agent import failed:", e)
 from pdf_generator import generate_pdf
 
 st.set_page_config(
@@ -20,9 +28,22 @@ def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-local_css("style.css")
+import os
 
-if 'predictor'    not in st.session_state: st.session_state.predictor    = NoShowPredictor()
+if os.path.exists("style.css"):
+    local_css("style.css")
+else:
+    st.warning("style.css not found")
+
+@st.cache_resource
+def load_predictor():
+    return NoShowPredictor()
+
+if 'predictor' not in st.session_state:
+    st.session_state.predictor = None
+
+if st.session_state.predictor is None:
+    st.session_state.predictor = load_predictor()
 if 'df'           not in st.session_state: st.session_state.df           = None
 if 'trained'      not in st.session_state: st.session_state.trained      = bool(st.session_state.predictor.trained)
 if 'agent_result' not in st.session_state: st.session_state.agent_result = None
