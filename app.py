@@ -1,7 +1,16 @@
+import warnings
+warnings.filterwarnings("ignore", message=".*Tried to instantiate class.*")
+import logging
+logging.getLogger("streamlit.watcher.local_sources_watcher").setLevel(logging.ERROR)
+
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from ml_pipeline import NoShowPredictor
+from agent_logic import run_agent
+from pdf_generator import generate_pdf
+import json
 
 st.set_page_config(page_title="No-Show Predictor", layout="wide")
 
@@ -14,11 +23,14 @@ if 'df' not in st.session_state:
 if 'trained' not in st.session_state:
     st.session_state.trained = False
 
-st.title(":hospital: No-Show Predictor")
+if 'agent_result' not in st.session_state:
+    st.session_state.agent_result = None
+
+st.title(":hospital: Clinical Agentic Care System")
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Upload Data", "Train Model", "Predict"]
+    ["Upload Data", "Train Model", "Predict & Assist"]
 )
 
 if page == "Upload Data":
@@ -41,7 +53,7 @@ elif page == "Train Model":
     st.header("Train Model")
 
     if st.session_state.df is None:
-        st.warning("Pehle data upload karo!")
+        st.warning("Upload the data first")
     else:
         model_name = st.selectbox(
             "Model choose karo",
@@ -92,8 +104,8 @@ elif page == "Train Model":
                 fig.update_layout(height=300)
                 st.plotly_chart(fig, width='stretch')
 
-elif page == "Predict":
-    st.header("Patient Risk Prediction")
+elif page == "Predict & Assist":
+    st.header("Patient Risk Assessment & AI Care Coordination")
 
     if not st.session_state.trained:
         st.warning("Train the model first!")
@@ -136,6 +148,9 @@ elif page == "Predict":
             prediction = result['prediction']
             threshold_used = result['threshold_used']
 
+            st.session_state.last_prob = prob
+            st.session_state.last_patient = patient_data
+            
             st.subheader(f"No-Show Probability: {prob:.2%}")
             st.caption(f"Threshold used: {threshold_used}")
 
@@ -146,3 +161,59 @@ elif page == "Predict":
                     st.warning("Medium Risk — Send SMS!")
             else:
                 st.success("Low Risk — Patient will come!")
+
+            st.divider()
+            st.subheader(":brain: AI Agentic Care Assistant")
+            
+            with st.spinner("Agent is reasoning and retrieving guidelines..."):
+                try:
+                    agent_response = run_agent(patient_data, result)
+                    st.session_state.agent_result = agent_response['final_report']
+                    st.success("Care strategy generated successfully!")
+                except Exception as e:
+                    st.error(f"Error calling AI Brain: {e}")
+                    st.info("Make sure your GROQ_API_KEY is set in the .env file.")
+
+        if st.session_state.agent_result:
+            report = st.session_state.agent_result
+            
+            def format_ui(obj):
+                if isinstance(obj, dict):
+                    return "\n\n".join([f"**{str(k).replace('_', ' ').title()}**: {format_ui(v)}" for k, v in obj.items()])
+                elif isinstance(obj, list):
+                    return "\n".join([f"- {format_ui(v)}" for v in obj])
+                return str(obj)
+            
+            col_a, col_b = st.columns([2, 1])
+            
+            with col_a:
+                with st.expander("View Risk Summary", expanded=True):
+                    st.markdown(format_ui(report.get('summary', 'No summary available.')))
+                
+                with st.expander("Key Contributing Factors"):
+                    st.markdown(format_ui(report.get('factors', [])))
+                        
+                with st.expander("Recommended Interventions", expanded=True):
+                    st.markdown(format_ui(report.get('strategies', [])))
+            
+            with col_b:
+                st.info("### Actions")
+                try:
+                    pdf_data = generate_pdf(
+                        report, 
+                        st.session_state.last_patient, 
+                        st.session_state.last_prob
+                    )
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=pdf_data,
+                        file_name=f"care_report_{age}_{gender}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"PDF Error: {e}")
+                    
+                with st.expander("Sources & Ethics"):
+                    st.markdown(f"**Sources:**\n{format_ui(report.get('sources', []))}")
+                    st.divider()
+                    st.warning(format_ui(report.get('disclaimers', 'Use with clinical caution.')))
