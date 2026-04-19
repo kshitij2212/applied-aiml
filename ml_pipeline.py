@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -7,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_auc_score
 
+
 class NoShowPredictor:
     def __init__(self):
         self.model = None
@@ -14,44 +16,80 @@ class NoShowPredictor:
         self.feature_cols = None
         self.threshold = 0.35
         self.model_name = None
+        self.trained = False
 
-    def preprocess(self,df):
+        # Attempt to load pre-trained model first
+        try:
+            base = os.path.dirname(__file__)
+            model_path = os.path.join(base, "models", "user_trained_predictor.pkl")
+            if os.path.exists(model_path):
+                import pickle
+                with open(model_path, 'rb') as f:
+                    saved_predictor = pickle.load(f)
+                    self.model = saved_predictor.model
+                    self.scaler = saved_predictor.scaler
+                    self.feature_cols = saved_predictor.feature_cols
+                    self.threshold = saved_predictor.threshold
+                    self.model_name = saved_predictor.model_name
+                    self.trained = True
+                return # Successfully loaded
+        except Exception:
+            pass
+
+        # Fallback: train on default dataset
+        try:
+            base = os.path.dirname(__file__)
+            default_path = os.path.join(base, "KaggleV2-May-2016.csv")
+            if os.path.exists(default_path):
+                df = pd.read_csv(default_path)
+                self.load_default_and_train(df)
+        except Exception:
+            pass
+
+    def preprocess(self, df):
         df = df.copy()
 
-        df['ScheduledDay'] = pd.to_datetime(df['ScheduledDay'],utc=True)
-        df['AppointmentDay'] = pd.to_datetime(df['AppointmentDay'],utc=True)
-        df['LeadTime'] = (df['AppointmentDay'] - df['ScheduledDay']).dt.days.clip(lower=0)
-
-        df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek      
+        if 'ScheduledDay' in df.columns and 'AppointmentDay' in df.columns:
+            df['ScheduledDay'] = pd.to_datetime(df['ScheduledDay'], utc=True)
+            df['AppointmentDay'] = pd.to_datetime(df['AppointmentDay'], utc=True)
+            
+            if 'LeadTime' not in df.columns:
+                df['LeadTime'] = (df['AppointmentDay'] - df['ScheduledDay']).dt.days.clip(lower=0)
+            
+            if 'DayOfWeek' not in df.columns:
+                df['DayOfWeek'] = df['AppointmentDay'].dt.dayofweek
 
         df['Gender_Male'] = (df['Gender'] == 'M').astype(int)
         if 'No-show' in df.columns:
             df['NoShowBinary'] = (df['No-show'] == 'Yes').astype(int)
-        
+
         df['Age'] = df['Age'].clip(0, 115)
 
-        df['AgeGroup'] = pd.cut(df['Age'],bins=[-1, 12, 18, 35, 55, 75, 120],labels=False).astype(float).fillna(2)
+        df['AgeGroup'] = pd.cut(df['Age'], bins=[-1, 12, 18, 35, 55, 75, 120], labels=False).astype(float).fillna(2)
 
         return df
-    
 
-    def train(self, df, model_name, test_size = 0.2 ,threshold = 0.35):
+    def train(self, df, model_name, test_size=0.2, threshold=0.35):
         df = self.preprocess(df)
         self.model_name = model_name
         self.threshold = threshold
         self.scaler = StandardScaler()
-        self.feature_cols = ['AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek']
+        self.feature_cols = [
+            'AgeGroup', 'Gender_Male', 'Scholarship', 'Hipertension', 'Diabetes',
+            'Alcoholism', 'Handcap', 'SMS_received', 'LeadTime', 'DayOfWeek'
+        ]
 
         for col in self.feature_cols:
             if col not in df.columns:
                 df[col] = 0
-        
+
         X = df[self.feature_cols]
         if 'NoShowBinary' not in df.columns:
             raise ValueError("Target column missing.")
         y = df['NoShowBinary']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42, stratify=y)
-        
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=42, stratify=y
+        )
 
         if model_name == 'Logistic Regression':
             X_train = self.scaler.fit_transform(X_train)
@@ -69,7 +107,9 @@ class NoShowPredictor:
 
         self.model.fit(X_train, y_train)
 
-        y_proba = self.model.predict_proba(X_test)[:,1]
+        self.trained = True
+
+        y_proba = self.model.predict_proba(X_test)[:, 1]
         y_pred = (y_proba >= threshold).astype(int)
 
         if hasattr(self.model, "feature_importances_"):
@@ -86,11 +126,11 @@ class NoShowPredictor:
             'f1': f1_score(y_test, y_pred, zero_division=0),
             'confusion_matrix': confusion_matrix(y_test, y_pred),
             'roc_auc': roc_auc_score(y_test, y_proba),
-            'feature_importance': importance}
-
+            'feature_importance': importance
+        }
 
     def predict(self, patient_data):
-        if self.model is None or self.feature_cols is None:
+        if self.model is None or self.feature_cols is None or not self.trained:
             raise ValueError("Model is not trained yet.")
 
         df = pd.DataFrame([patient_data])
@@ -111,3 +151,11 @@ class NoShowPredictor:
             'prediction': int(prob >= self.threshold),
             'threshold_used': self.threshold
         }
+
+    def load_default_and_train(self, df, model_name='Logistic Regression', test_size=0.2, threshold=0.35):
+        try:
+            self.train(df, model_name=model_name, test_size=test_size, threshold=threshold)
+        except Exception:
+            self.trained = False
+            return False
+        return True
