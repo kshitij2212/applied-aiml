@@ -1,0 +1,44 @@
+[
+    {
+        "category": "Prevention",
+        "strategy": "Multi-Channel Automated Reminders",
+        "intervention": "Send automated SMS, email, and voice reminders at 7 days and 24 hours prior to the appointment.",
+        "rationale": "Reminders are the most consistently effective intervention for reducing no-shows.",
+        "source": "Healthcare Best Practices Guide"
+    },
+    {
+        "category": "Prevention",
+        "strategy": "Reduced Lead Time",
+        "intervention": "Offer same-day or near-term appointment slots to patients with high lead times.",
+        "rationale": "The probability of a no-show increases exponentially as the lead time increases beyond 14 days.",
+        "source": "Clinical Operations Research"
+    },
+    {
+        "category": "Prevention",
+        "strategy": "Telehealth Alternative",
+        "intervention": "Offer a virtual visit option for patients who mention transportation or childcare issues.",
+        "rationale": "Telehealth overcomes logistical barriers and historical data shows higher attendance for virtual check-ins.",
+        "source": "Telehealth Adoption Guidelines"
+    },
+    {
+        "category": "Care Coordination",
+        "strategy": "Social Determinants of Health (SDOH) Screening",
+        "intervention": "Screen for transportation, financial, or housing instability during booking.",
+        "rationale": "Identifying barriers early allows the care team to connect the patient with transit assistance or community resources.",
+        "source": "Population Health Management"
+    },
+    {
+        "category": "Care Coordination",
+        "strategy": "Same-Day Follow-Up",
+        "intervention": "Proactively contact the patient within 2 hours of a missed appointment to reschedule and assess barriers.",
+        "rationale": "Warm outreach increases patient retention and addresses immediate reasons for absence.",
+        "source": "Patient Engagement Protocols"
+    },
+    {
+        "category": "Operational",
+        "strategy": "Strategic Scheduling",
+        "intervention": "Schedule high-risk patients during the morning slots or as first appointments of the day.",
+        "rationale": "Earlier appointments have slightly higher attendance rates and allow more time for same-day outreach if missed.",
+        "source": "Clinic Resource Optimization"
+    }
+]
